@@ -58,7 +58,9 @@ export function TimeChart({
     const el = host.current;
     if (!el) return;
     const grid = { stroke: cssVar("--border"), width: 1 };
-    const axis = { stroke: cssVar("--text-faint"), grid, ticks: { show: false }, font: '10.5px "JetBrains Mono Variable", monospace' };
+    // Whole pixels only: uPlot rescales the font per devicePixelRatio with a
+    // regex that reads "10.5px" as "5px", which shrinks labels on 2x screens.
+    const axis = { stroke: cssVar("--text-faint"), grid, ticks: { show: false }, font: '11px "JetBrains Mono Variable", monospace' };
     const opts: Options = {
       width: el.clientWidth,
       height,

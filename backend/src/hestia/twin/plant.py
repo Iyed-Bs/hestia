@@ -509,7 +509,9 @@ class SiteModel:
         if not out.electrolyser:
             if available < 1.2 * stack_min:
                 return f"too little left for the stack (it needs {1.2 * stack_min / 1000:.1f} kW to start)"
-            return out.reason[:1].lower() + out.reason[1:] if out.reason else "stack not running"
+            reason = out.reason or "stack not running"
+            # Mid-sentence, but "H₂ alarm…" and "KOH…" keep their capitals.
+            return reason[:1].lower() + reason[1:] if reason[1:2].islower() else reason
         return f"below the stack's minimum ({stack_min / 1000:.1f} kW)"
 
     def _explain(
