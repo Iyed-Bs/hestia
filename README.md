@@ -2,7 +2,7 @@
 
 **Solar hydrogen for buildings: supervised, provable, honestly sized.**
 
-![A winter evening in the simulator: the fuel cell runs the heat pump on summer's hydrogen, and its own heat goes into the house](docs/images/simulator.png)
+![Hestia: the simulator on a summer day in Tunis, and a stage-2 hydrogen alarm on a phone](screenshots/00-cover.png)
 
 A building can turn its summer sun into hydrogen and use it in winter, for
 electricity and heat. Two things stop the people who own one: they cannot
@@ -28,7 +28,7 @@ found. A pressurised tank stops production at 95 % of its working pressure.
 supply, as a process diagram with a faceplate for each piece of equipment
 and every reading drawn against its limits.
 
-![The live bench: the cooling loop holds the electrolyte between 50 and 55 °C while the stack produces](docs/images/live.png)
+![The live bench: the cooling loop holds the electrolyte between 50 and 55 °C while the stack produces](screenshots/02-live-bench-stack-producing.png)
 
 **Lets anyone run a whole building.** Each signed-in visitor gets a private
 simulator: a building around a scaled-up stack, with solar panels, a battery,
@@ -37,7 +37,7 @@ and cools. Thirteen scenarios start it on a summer day, a winter evening, a
 heat wave, a grid outage, a leak, a dead fan or an ageing sensor; or build
 your own site, speed up time, break things and watch the system react.
 
-![A large leak: the alarm latches, power is cut, the extraction keeps running](docs/images/simulator-alarm.png)
+![A large leak: the alarm latches, power is cut, the extraction keeps running](screenshots/05-simulator-hydrogen-leak-stage-2-alarm.png)
 
 **Proves the detector still works: the trust layer.** A hydrogen sensor can
 drift, freeze, die, or get poisoned and keep reading perfectly normal air.
@@ -47,7 +47,7 @@ just tick "passed"), and **stops production while the detector cannot be
 trusted**. Every alarm, reset, command and check goes into a hash-chained,
 signed journal; the printable safety report carries its fingerprint.
 
-![A poisoned sensor reads normal air; only the bump test catches it, and production stops](docs/images/safety.png)
+![A poisoned sensor reads normal air; only the bump test catches it, and production stops](screenshots/06-safety-poisoned-sensor-caught.png)
 
 **Sizes it honestly: the planner.** Hour by hour over a full year of real
 weather, with the simulator's physics, it compares *today*, *solar*,
@@ -58,7 +58,7 @@ grid or hydrogen) by the CO₂ each kWh avoids, at a carbon price, and the
 money it saves: nature first, then cost. It also says how big the tank really is:
 20 kg of hydrogen at 30 bar is almost 10 m³.
 
-![The planner: four set-ups, one honest answer](docs/images/planner.png)
+![The planner: four set-ups, one honest answer](screenshots/07-planner-honest-answer.png)
 
 **Numbers from physics, not brochures.** Tilted panels from measured
 weather (PVWatts losses, HDKR transposition), an alkaline stack model with
@@ -120,6 +120,7 @@ cd firmware && pio test -e native && pio run -e esp32dev
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | the parts, who decides what, one engine cycle |
 | [docs/DESIGN-DECISIONS.md](docs/DESIGN-DECISIONS.md) | twenty decisions from prototype to product, and why |
 | [DEVLOG.md](DEVLOG.md) | from the PFA bench to the product |
+| [screenshots/](screenshots/) | the product, screen by screen |
 | [SECURITY.md](SECURITY.md) | threat model and controls |
 | [deploy/README.md](deploy/README.md) | running it in a building |
 | [firmware/README.md](firmware/README.md) | the ESP32 controller: wiring, setup, safety behaviour |
