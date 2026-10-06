@@ -11,7 +11,7 @@
 # =============================================================================
 
 # ── 1. Dashboard ──────────────────────────────────────────────────────────────
-FROM node:22-alpine AS dashboard
+FROM node:26-alpine AS dashboard
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund

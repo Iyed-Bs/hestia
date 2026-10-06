@@ -1,6 +1,6 @@
 # Every push and pull request: quality, tests and security checks for every
 # part of Hestia. Actions are pinned to full commit SHAs (supply-chain safety);
-# Dependabot keeps them current.
+# they are bumped by hand, in reviewed commits.
 name: CI
 
 on:
