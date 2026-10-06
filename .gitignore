@@ -10,7 +10,7 @@ deploy/mosquitto/passwd
 !deploy/mosquitto/certs/.gitkeep
 
 # ── Runtime data (journal, users, caches) ────────────────────────────────────
-data/
+/data/
 backend/data/
 *.sqlite3
 *.db

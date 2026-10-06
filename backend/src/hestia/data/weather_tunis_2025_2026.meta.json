@@ -1,0 +1,9 @@
+{
+  "downloaded": "2026-05-24T19:10:23.193083",
+  "source": "Open-Meteo archive API",
+  "lat": 36.8,
+  "lon": 10.2,
+  "record_count": 8784,
+  "first": "2025-05-24T00:00Z",
+  "last": "2026-05-24T23:00Z"
+}
