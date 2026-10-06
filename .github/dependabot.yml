@@ -13,6 +13,10 @@ updates:
     schedule: { interval: weekly }
     groups:
       dashboard: { patterns: ["*"] }
+    ignore:
+      # typescript-eslint does not support TypeScript 7 (the native compiler) yet
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
