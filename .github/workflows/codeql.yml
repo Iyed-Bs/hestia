@@ -14,8 +14,11 @@ permissions:
 
 jobs:
   analyze:
+    # Code scanning needs a public repo (or a paid plan): skipped while private.
+    if: github.event.repository.private == false
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: write
     strategy:
