@@ -1,0 +1,46 @@
+# ── Secrets: never committed (CI runs gitleaks to catch mistakes) ────────────
+.env
+.env.*
+!.env.example
+firmware/include/secrets.h
+deploy/mosquitto/certs/*
+deploy/mosquitto/passwd
+*.pem
+*.key
+!deploy/mosquitto/certs/.gitkeep
+
+# ── Runtime data (journal, users, caches) ────────────────────────────────────
+data/
+backend/data/
+*.sqlite3
+*.db
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+.venv-*/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# ── Frontend ─────────────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+backend/src/hestia/static/
+
+# ── Firmware ─────────────────────────────────────────────────────────────────
+firmware/.pio/
+firmware/.vscode/
+
+# ── OS / editors ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

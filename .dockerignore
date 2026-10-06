@@ -1,0 +1,24 @@
+# Only what the image needs: frontend sources, backend sources and lock files.
+**/node_modules
+**/.venv
+**/.venv-*
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/*.tsbuildinfo
+backend/src/hestia/static
+backend/data
+data
+.git
+.github
+.env
+.env.*
+!.env.example
+ml
+firmware
+deploy
+docs
+spec
+*.md
+!backend/README.md

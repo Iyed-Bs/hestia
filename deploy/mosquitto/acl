@@ -1,0 +1,15 @@
+# Who may publish or read which topic.
+# Topics: hestia/<site>/<device>/{telemetry,ack,status,cmd} and hestia/<site>/heating
+# (prefix = HESTIA_TOPIC_PREFIX; change "hestia" below if you change it).
+
+# The gateway: everything under its prefix.
+user hestia-gateway
+topic readwrite hestia/#
+
+# Each controller logs in with its device id as username (%u) and may only
+# publish its own telemetry, acknowledgements and status, and read its own
+# commands. A stolen controller cannot read or command another one.
+pattern write hestia/+/%u/telemetry
+pattern write hestia/+/%u/ack
+pattern write hestia/+/%u/status
+pattern read hestia/+/%u/cmd

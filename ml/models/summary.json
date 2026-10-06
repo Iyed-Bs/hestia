@@ -1,0 +1,11 @@
+{
+  "trained_at": "2026-05-24T20:02:59.218056",
+  "dataset": "data/processed/dataset.csv",
+  "samples": 8784,
+  "models": {
+    "pv_nn": "pv_nn/            (TF SavedModel) or pv_model/ fallback",
+    "thermal_lstm": "thermal_lstm/     (TF SavedModel) or thermal_model/ fallback",
+    "rl_agent": "rl_agent.npz      (Q-table)",
+    "leak_detector": "leak_detector.pkl (IsolationForest)"
+  }
+}

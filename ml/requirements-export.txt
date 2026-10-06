@@ -1,0 +1,8 @@
+# Only needed to re-export models (python ml/export_onnx.py). The gateway never installs these.
+tensorflow==2.21.0
+tf2onnx>=1.16
+onnx>=1.16
+skl2onnx>=1.17
+scikit-learn==1.8.0
+onnxruntime>=1.20
+numpy>=2.0

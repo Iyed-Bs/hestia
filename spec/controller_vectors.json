@@ -1,0 +1,199 @@
+{
+  "description": "Shared behaviour specification of the Hestia safety controller (version 2: KOH electrolyte, cooling loop regulated while producing, two-stage hydrogen detection with extraction, pressurised storage). Every scenario starts from 'initial', then applies its steps in order. A 'reading' step advances the device clock by 'dt' seconds (default 2), runs one control cycle and checks 'expect' (only the keys listed are checked). A 'command' step applies an operator command and checks whether it is accepted. The Python controller (backend/tests/test_controller_vectors.py) and the ESP32 firmware (firmware/test/test_core, PlatformIO native) both run this file in CI, so they cannot drift apart.",
+  "version": 2,
+  "defaults": {
+    "initial": {"mode": "AUTO", "phase": "ELECTROLYSIS", "production_permit": true, "storage_mawp_bar": 0.0},
+    "reading": {"electrolyte_c": 30.0, "koh_wt_pct": 30.0, "level_low": false, "h2_ppm": 60.0, "tank_bar": 0.0, "temp_valid": true, "koh_valid": true, "h2_valid": true, "tank_valid": true},
+    "dt": 2.0
+  },
+  "scenarios": [
+    {
+      "name": "normal production",
+      "steps": [
+        {"reading": {}, "expect": {"electrolyser": true, "cooling_pump": false, "koh_dosing": false, "water_makeup": false, "ventilation": false, "h2_relay_closed": true, "phase": "ELECTROLYSIS", "h2_warning": false}}
+      ]
+    },
+    {
+      "name": "no permit means no production",
+      "initial": {"production_permit": false},
+      "steps": [
+        {"reading": {}, "expect": {"electrolyser": false, "phase": "ELECTROLYSIS"}}
+      ]
+    },
+    {
+      "name": "the cooling loop holds 50-55 C while the stack produces",
+      "steps": [
+        {"reading": {"electrolyte_c": 54.9}, "expect": {"electrolyser": true, "cooling_pump": false, "phase": "ELECTROLYSIS"}},
+        {"reading": {"electrolyte_c": 55.0}, "expect": {"electrolyser": true, "cooling_pump": true, "phase": "ELECTROLYSIS"}},
+        {"reading": {"electrolyte_c": 52.0}, "expect": {"electrolyser": true, "cooling_pump": true}},
+        {"reading": {"electrolyte_c": 50.0}, "expect": {"electrolyser": true, "cooling_pump": false}},
+        {"reading": {"electrolyte_c": 53.0}, "expect": {"electrolyser": true, "cooling_pump": false}}
+      ]
+    },
+    {
+      "name": "the stack stops to cool when the loop cannot keep up",
+      "steps": [
+        {"reading": {"electrolyte_c": 59.9}, "expect": {"electrolyser": true, "cooling_pump": true, "phase": "ELECTROLYSIS"}},
+        {"reading": {"electrolyte_c": 60.0}, "expect": {"electrolyser": false, "cooling_pump": true, "phase": "COOLING"}},
+        {"reading": {"electrolyte_c": 55.0, "koh_wt_pct": 33.0}, "expect": {"cooling_pump": true, "water_makeup": true, "phase": "COOLING"}},
+        {"reading": {"electrolyte_c": 50.0, "koh_wt_pct": 31.0}, "expect": {"cooling_pump": false, "water_makeup": false, "phase": "CONDITIONING"}},
+        {"reading": {"electrolyte_c": 49.0, "koh_wt_pct": 24.0}, "expect": {"koh_dosing": true, "electrolyser": false, "phase": "CONDITIONING"}},
+        {"reading": {"electrolyte_c": 48.0, "koh_wt_pct": 26.0}, "expect": {"koh_dosing": false, "electrolyser": true, "cooling_pump": false, "phase": "ELECTROLYSIS"}}
+      ]
+    },
+    {
+      "name": "electrolyte outside its band holds the next run",
+      "initial": {"phase": "CONDITIONING"},
+      "steps": [
+        {"reading": {"koh_wt_pct": 22.0}, "expect": {"koh_dosing": true, "water_makeup": false, "electrolyser": false, "phase": "CONDITIONING"}},
+        {"reading": {"koh_wt_pct": 33.5}, "expect": {"koh_dosing": false, "water_makeup": true, "electrolyser": false, "phase": "CONDITIONING"}},
+        {"reading": {"koh_wt_pct": 30.0, "level_low": true}, "expect": {"water_makeup": true, "phase": "CONDITIONING"}},
+        {"reading": {"koh_wt_pct": 30.0}, "expect": {"electrolyser": true, "phase": "ELECTROLYSIS"}}
+      ]
+    },
+    {
+      "name": "weak electrolyte stops the stack to dose concentrate",
+      "steps": [
+        {"reading": {"koh_wt_pct": 24.9}, "expect": {"electrolyser": false, "koh_dosing": true, "phase": "CONDITIONING"}},
+        {"reading": {"koh_wt_pct": 25.0}, "expect": {"electrolyser": true, "koh_dosing": false, "phase": "ELECTROLYSIS"}}
+      ]
+    },
+    {
+      "name": "low level tops up and blocks production",
+      "steps": [
+        {"reading": {"level_low": true}, "expect": {"electrolyser": false, "water_makeup": true}}
+      ]
+    },
+    {
+      "name": "stage 1 needs three consecutive readings and starts extraction",
+      "steps": [
+        {"reading": {"h2_ppm": 600}, "expect": {"electrolyser": true, "ventilation": false, "h2_warning": false}},
+        {"reading": {"h2_ppm": 600}, "expect": {"electrolyser": true, "h2_warning": false}},
+        {"reading": {"h2_ppm": 60}, "expect": {"electrolyser": true, "h2_warning": false}},
+        {"reading": {"h2_ppm": 600}, "expect": {"h2_warning": false}},
+        {"reading": {"h2_ppm": 600}, "expect": {"h2_warning": false}},
+        {"reading": {"h2_ppm": 600}, "expect": {"electrolyser": false, "ventilation": true, "h2_warning": true, "h2_alarm_latched": false, "h2_relay_closed": true, "mode": "AUTO"}}
+      ]
+    },
+    {
+      "name": "extraction purges for five minutes after the gas has gone",
+      "steps": [
+        {"reading": {"h2_ppm": 600}},
+        {"reading": {"h2_ppm": 600}},
+        {"reading": {"h2_ppm": 600}, "expect": {"h2_warning": true}},
+        {"reading": {"h2_ppm": 60}, "dt": 2, "expect": {"ventilation": true, "electrolyser": false, "h2_warning": true}},
+        {"reading": {"h2_ppm": 60}, "dt": 297, "expect": {"ventilation": true, "h2_warning": true}},
+        {"reading": {"h2_ppm": 60}, "dt": 2, "expect": {"ventilation": false, "electrolyser": true, "h2_warning": false}}
+      ]
+    },
+    {
+      "name": "an unreadable sensor never ends a warning",
+      "steps": [
+        {"reading": {"h2_ppm": 600}},
+        {"reading": {"h2_ppm": 600}},
+        {"reading": {"h2_ppm": 600}, "expect": {"h2_warning": true}},
+        {"reading": {"h2_valid": false}, "dt": 600, "expect": {"ventilation": true, "h2_warning": true, "electrolyser": false}}
+      ]
+    },
+    {
+      "name": "stage 2 latches, cuts power and keeps extraction running",
+      "steps": [
+        {"reading": {"h2_ppm": 2500}, "expect": {"electrolyser": true, "h2_alarm_latched": false}},
+        {"reading": {"h2_ppm": 2500}, "expect": {"electrolyser": true, "h2_alarm_latched": false}},
+        {"reading": {"h2_ppm": 2500}, "expect": {"electrolyser": false, "cooling_pump": false, "koh_dosing": false, "water_makeup": false, "ventilation": true, "h2_relay_closed": false, "h2_alarm_latched": true, "mode": "SAFE_SHUTDOWN"}}
+      ]
+    },
+    {
+      "name": "the alarm stays latched until a reasoned reset, then the purge finishes",
+      "steps": [
+        {"reading": {"h2_ppm": 2500}},
+        {"reading": {"h2_ppm": 2500}},
+        {"reading": {"h2_ppm": 2500}, "expect": {"h2_alarm_latched": true}},
+        {"reading": {"h2_ppm": 60}, "expect": {"h2_alarm_latched": true, "h2_relay_closed": false, "ventilation": true}},
+        {"command": {"kind": "set_mode", "mode": "AUTO"}, "accepted": false},
+        {"command": {"kind": "reset_h2_alarm", "reason": "ok"}, "accepted": false},
+        {"command": {"kind": "reset_h2_alarm", "reason": "Fitting re-tightened, leak test passed, room ventilated"}, "accepted": true},
+        {"reading": {"h2_ppm": 60}, "expect": {"h2_alarm_latched": false, "h2_relay_closed": true, "mode": "SAFE_SHUTDOWN", "ventilation": true}},
+        {"command": {"kind": "set_mode", "mode": "AUTO"}, "accepted": true},
+        {"reading": {"h2_ppm": 60}, "dt": 2, "expect": {"electrolyser": false, "ventilation": true, "h2_warning": true}},
+        {"reading": {"h2_ppm": 60}, "dt": 300, "expect": {"electrolyser": true, "ventilation": false, "h2_warning": false}}
+      ]
+    },
+    {
+      "name": "H2 sensor unavailable blocks production but not cooling",
+      "steps": [
+        {"reading": {"h2_valid": false}, "expect": {"electrolyser": false, "phase": "ELECTROLYSIS"}},
+        {"reading": {"h2_valid": false, "electrolyte_c": 61.0}, "expect": {"cooling_pump": true, "phase": "COOLING"}}
+      ]
+    },
+    {
+      "name": "temperature or electrolyte sensor fault stops everything",
+      "steps": [
+        {"reading": {"temp_valid": false}, "expect": {"electrolyser": false, "cooling_pump": false, "koh_dosing": false, "water_makeup": false, "ventilation": false}},
+        {"reading": {"koh_valid": false}, "expect": {"electrolyser": false, "cooling_pump": false, "koh_dosing": false, "water_makeup": false}}
+      ]
+    },
+    {
+      "name": "over-temperature forces cooling on",
+      "initial": {"phase": "CONDITIONING"},
+      "steps": [
+        {"reading": {"electrolyte_c": 70.0, "koh_wt_pct": 22.0}, "expect": {"electrolyser": false, "cooling_pump": true, "koh_dosing": false, "water_makeup": false}}
+      ]
+    },
+    {
+      "name": "manual mode obeys the operator within interlocks",
+      "steps": [
+        {"command": {"kind": "set_actuator", "actuator": "electrolyser", "on": true}, "accepted": false},
+        {"command": {"kind": "set_mode", "mode": "MANUAL"}, "accepted": true},
+        {"command": {"kind": "set_actuator", "actuator": "electrolyser", "on": true}, "accepted": true},
+        {"command": {"kind": "set_actuator", "actuator": "koh_dosing", "on": true}, "accepted": true},
+        {"reading": {}, "expect": {"electrolyser": true, "koh_dosing": true, "cooling_pump": false}},
+        {"reading": {"electrolyte_c": 70.0}, "expect": {"electrolyser": false, "cooling_pump": true, "koh_dosing": false}},
+        {"reading": {"h2_ppm": 600}},
+        {"reading": {"h2_ppm": 600}},
+        {"reading": {"h2_ppm": 600}, "expect": {"electrolyser": false, "ventilation": true, "h2_warning": true}},
+        {"command": {"kind": "set_actuator", "actuator": "ventilation", "on": false}, "accepted": true},
+        {"reading": {"h2_ppm": 600}, "expect": {"ventilation": true}},
+        {"command": {"kind": "set_mode", "mode": "AUTO"}, "accepted": true},
+        {"command": {"kind": "set_mode", "mode": "MANUAL"}, "accepted": true},
+        {"reading": {"h2_ppm": 60}, "expect": {"electrolyser": false, "koh_dosing": false, "ventilation": true}}
+      ]
+    },
+    {
+      "name": "pressurised storage stops production near its limit",
+      "initial": {"storage_mawp_bar": 30.0},
+      "steps": [
+        {"reading": {"tank_bar": 28.4}, "expect": {"electrolyser": true}},
+        {"reading": {"tank_bar": 28.5}, "expect": {"electrolyser": false, "phase": "ELECTROLYSIS"}},
+        {"reading": {"tank_bar": 10.0, "tank_valid": false}, "expect": {"electrolyser": false}},
+        {"reading": {"tank_bar": 10.0}, "expect": {"electrolyser": true}}
+      ]
+    },
+    {
+      "name": "safe shutdown turns everything off",
+      "steps": [
+        {"command": {"kind": "set_mode", "mode": "SAFE_SHUTDOWN"}, "accepted": true},
+        {"reading": {}, "expect": {"electrolyser": false, "cooling_pump": false, "koh_dosing": false, "water_makeup": false, "ventilation": false, "mode": "SAFE_SHUTDOWN"}}
+      ]
+    },
+    {
+      "name": "thresholds only move inside their limits and stay coherent",
+      "steps": [
+        {"command": {"kind": "set_threshold", "name": "temp_alert_c", "value": 200}, "accepted": false},
+        {"command": {"kind": "set_threshold", "name": "temp_alert_c", "value": 61}, "accepted": false},
+        {"command": {"kind": "set_threshold", "name": "temp_alert_c", "value": 65}, "accepted": true},
+        {"command": {"kind": "set_threshold", "name": "koh_low_pct", "value": 31}, "accepted": false},
+        {"command": {"kind": "set_threshold", "name": "koh_low_pct", "value": 29}, "accepted": true},
+        {"command": {"kind": "set_threshold", "name": "koh_high_pct", "value": 30}, "accepted": false},
+        {"command": {"kind": "set_threshold", "name": "h2_warning_ppm", "value": 1500}, "accepted": false},
+        {"command": {"kind": "set_threshold", "name": "h2_warning_ppm", "value": 900}, "accepted": true},
+        {"command": {"kind": "set_threshold", "name": "h2_alarm_ppm", "value": 800}, "accepted": false},
+        {"command": {"kind": "set_threshold", "name": "h2_alarm_ppm", "value": 5000}, "accepted": false},
+        {"command": {"kind": "set_threshold", "name": "h2_alarm_ppm", "value": 3000}, "accepted": true},
+        {"reading": {"h2_ppm": 950}},
+        {"reading": {"h2_ppm": 950}},
+        {"reading": {"h2_ppm": 950}, "expect": {"h2_warning": true}}
+      ]
+    }
+  ]
+}

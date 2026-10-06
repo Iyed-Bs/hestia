@@ -1,0 +1,8 @@
+{
+  "name": "hestia_core",
+  "version": "2.0.0",
+  "description": "Hestia safety controller, command rules and command authentication. Portable C++: no Arduino calls, so it is unit-tested on a PC against spec/controller_vectors.json.",
+  "frameworks": "*",
+  "platforms": "*",
+  "dependencies": [{ "owner": "bblanchon", "name": "ArduinoJson", "version": "^7.4.0" }]
+}

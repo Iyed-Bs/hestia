@@ -1,0 +1,78 @@
+{
+  "description": "Signed command envelopes, generated with the gateway's EnvelopeSigner (backend/src/hestia/runtime/envelope.py). Cases run in order against ONE verifier whose clock reads 'now'. The Python verifier (backend/tests/test_command_vectors.py) and the firmware's (firmware/test/test_core) must both give 'expect'. The key is a published test key: never use it on a device.",
+  "version": 1,
+  "key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "now": 1790000000,
+  "cases": [
+    {
+      "name": "valid command",
+      "envelope": {
+        "seq": 1790000000000,
+        "ts": 1790000000,
+        "cmd": "{\"kind\":\"set_mode\",\"mode\":\"AUTO\"}",
+        "mac": "f2d42f836c5dde20ee312fdf295b1ee1ee205e9567fb9f41b0606c79e6733d41"
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "the same message replayed",
+      "envelope": {
+        "seq": 1790000000000,
+        "ts": 1790000000,
+        "cmd": "{\"kind\":\"set_mode\",\"mode\":\"AUTO\"}",
+        "mac": "f2d42f836c5dde20ee312fdf295b1ee1ee205e9567fb9f41b0606c79e6733d41"
+      },
+      "expect": "replayed"
+    },
+    {
+      "name": "command changed after signing",
+      "envelope": {
+        "seq": 1790000001000,
+        "ts": 1790000001,
+        "cmd": "{\"kind\":\"set_mode\",\"mode\":\"MANUAL\"}",
+        "mac": "92fd7cf7544c9858c71d3ecd28cc89b3d7a2b4231cfecde4706442dbf4e25b3d"
+      },
+      "expect": "bad_signature"
+    },
+    {
+      "name": "signed with another key",
+      "envelope": {
+        "seq": 1790000002000,
+        "ts": 1790000002,
+        "cmd": "{\"kind\":\"set_mode\",\"mode\":\"AUTO\"}",
+        "mac": "dbbd3aed9768c3e8c295ea24e06834ad2b7aca6bb87526e33bc9779a460aa2ed"
+      },
+      "expect": "bad_signature"
+    },
+    {
+      "name": "timestamp 31 s in the past",
+      "envelope": {
+        "seq": 1790000003000,
+        "ts": 1789999969,
+        "cmd": "{\"kind\":\"set_permit\",\"permit\":true,\"valid_for_s\":120}",
+        "mac": "78a6a6c8c9cc2bd4f3306493236fb20dfef16bb4b11a01e58aa153673f03d17c"
+      },
+      "expect": "stale"
+    },
+    {
+      "name": "signature in upper case is not the signature",
+      "envelope": {
+        "seq": 1790000004000,
+        "ts": 1790000004,
+        "cmd": "{\"kind\":\"set_mode\",\"mode\":\"SAFE_SHUTDOWN\"}",
+        "mac": "6CA2A8B121E321F067641AE0BDFE230675EFFC38FA3AF7D118AC5EE798AC41DE"
+      },
+      "expect": "bad_signature"
+    },
+    {
+      "name": "non-ASCII command text, 10 s ahead of the device clock",
+      "envelope": {
+        "seq": 1790000010000,
+        "ts": 1790000010,
+        "cmd": "{\"kind\":\"reset_h2_alarm\",\"reason\":\"Raccord resserr\\u00e9, test d'\\u00e9tanch\\u00e9it\\u00e9 r\\u00e9ussi\"}",
+        "mac": "ba38bf0c37a73242aa2a0bddb69c50cc48c3a2e689fbb7a03d057ea89f7acd0b"
+      },
+      "expect": "ok"
+    }
+  ]
+}

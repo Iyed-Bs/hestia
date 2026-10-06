@@ -1,0 +1,9 @@
+# gitleaks configuration: the default rules, plus reviewed false positives.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "A JSON key name compared in a firmware test, not a secret"
+condition = "AND"
+paths = ['''^firmware/test/test_core/test_main\.cpp$''']
+regexes = ['''h2_relay_closed''']

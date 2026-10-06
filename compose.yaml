@@ -1,0 +1,87 @@
+# =============================================================================
+# Hestia on one machine in the building (a mini-PC or a Raspberry Pi 5).
+#
+#   cp .env.example .env              then edit it (every line is explained)
+#
+#   Simulation / public demo:         docker compose up -d
+#   Real installation:                ./deploy/setup.sh             (once)
+#                                     docker compose --profile device up -d
+#
+# Services
+#   gateway    the Hestia gateway (dashboard, API, engine); not exposed directly
+#   caddy      HTTPS in front of the gateway (ports 80/443)
+#   mosquitto  MQTT broker for the controllers, TLS only (port 8883),
+#              started with the "device" profile
+# See deploy/README.md for the details.
+# =============================================================================
+name: hestia
+
+services:
+  gateway:
+    build: .
+    image: hestia-gateway:2.0.0
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HESTIA_DATA_DIR: /data
+      HESTIA_MQTT_CA_CERT: /certs/ca.crt # only read in device mode
+    volumes:
+      - hestia-data:/data
+      # The broker's certificate authority (made by deploy/setup.sh). In twin
+      # mode the folder may stay empty: nothing reads it.
+      - ./deploy/mosquitto/certs:/certs:ro
+    # Hardening: read-only filesystem except /data and /tmp, no Linux
+    # capabilities, no privilege escalation.
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [internal]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      gateway:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # The name browsers use: a public domain (automatic Let's Encrypt
+      # certificate when HESTIA_TLS is an e-mail address) or a local name with
+      # HESTIA_TLS=internal (Caddy's own certificate authority).
+      HESTIA_DOMAIN: ${HESTIA_DOMAIN:-localhost}
+      HESTIA_TLS: ${HESTIA_TLS:-internal}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ["no-new-privileges:true"]
+    networks: [internal]
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    profiles: [device]
+    restart: unless-stopped
+    ports:
+      - "8883:8883" # MQTT over TLS, for the controllers on the building network
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./deploy/mosquitto/acl:/mosquitto/config/acl:ro
+      - ./deploy/mosquitto/passwd:/mosquitto/config/passwd:ro
+      - ./deploy/mosquitto/certs:/mosquitto/certs:ro
+      - mosquitto-data:/mosquitto/data
+    security_opt: ["no-new-privileges:true"]
+    networks: [internal]
+
+networks:
+  internal:
+
+volumes:
+  hestia-data:
+  caddy-data:
+  caddy-config:
+  mosquitto-data:

@@ -1,0 +1,23 @@
+# HTTPS in front of the Hestia gateway.
+#
+# HESTIA_DOMAIN  the name in the browser's address bar (default: localhost)
+# HESTIA_TLS     "internal"  → Caddy's own certificate authority, for a building
+#                              network name such as hestia.local (install
+#                              Caddy's root certificate on the operators' devices
+#                              once, or accept the warning)
+#                an e-mail   → a public certificate from Let's Encrypt, for a
+#                              real domain pointing at this machine
+{$HESTIA_DOMAIN} {
+	tls {$HESTIA_TLS}
+
+	encode zstd gzip
+
+	# The live stream (/api/stream) is Server-Sent Events: never buffer it.
+	reverse_proxy gateway:8000 {
+		flush_interval -1
+	}
+
+	# The gateway sets its own security headers (CSP, HSTS, frame denial…);
+	# only hide what the proxy itself would reveal.
+	header -Server
+}
